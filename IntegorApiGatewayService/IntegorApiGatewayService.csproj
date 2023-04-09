@@ -6,4 +6,16 @@
     <ImplicitUsings>disable</ImplicitUsings>
   </PropertyGroup>
 
+  <ItemGroup>
+    <Compile Remove="Controllers\AuthorizationService\**" />
+    <Content Remove="Controllers\AuthorizationService\**" />
+    <EmbeddedResource Remove="Controllers\AuthorizationService\**" />
+    <None Remove="Controllers\AuthorizationService\**" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="IntegorAuthorizationInteraction" Version="0.1.0.7" />
+    <PackageReference Include="IntegorServiceConfiguration" Version="1.0.0.7" />
+  </ItemGroup>
+
 </Project>
