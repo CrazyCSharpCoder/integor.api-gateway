@@ -3,6 +3,8 @@ using System.Threading.Tasks;
 
 using Microsoft.AspNetCore.Mvc;
 
+using IntegorSharedResponseDecorators.Authorization.Attributes;
+
 using IntegorPublicDto.Authorization.Users;
 using IntegorPublicDto.Authorization.Users.Input;
 
@@ -23,6 +25,7 @@ namespace IntegorApiGatewayService.Controllers.AuthorizationService
         }
 
 		[HttpPost("register")]
+		[DecorateUserResponse]
         public async Task<IActionResult> RegisterAsync(RegisterUserDto registerDto)
         {
 			ServiceResponse<UserAccountInfoDto> response;
@@ -49,6 +52,7 @@ namespace IntegorApiGatewayService.Controllers.AuthorizationService
         }
 
 		[HttpPost("login")]
+		[DecorateUserResponse]
 		public async Task<IActionResult> LoginAsync(LoginUserDto loginDto)
 		{
 			ServiceResponse<UserAccountInfoDto> response;
