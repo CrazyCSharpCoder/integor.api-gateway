@@ -9,7 +9,10 @@ using IntegorPublicDto.Authorization.Users;
 using IntegorPublicDto.Authorization.Users.Input;
 
 using IntegorServicesInteraction;
+using IntegorServicesInteraction.Exceptions;
 using IntegorServicesInteraction.Authorization;
+
+using IntegorAspHelpers.MicroservicesInteraction;
 
 namespace IntegorApiGatewayService.Controllers.AuthorizationService
 {
@@ -18,35 +21,33 @@ namespace IntegorApiGatewayService.Controllers.AuthorizationService
     public class AuthenticationController : ControllerBase
     {
 		private IAuthorizationServiceAuthApi _authApi;
+		private IServiceErrorsToActionResultTranslator _errorsToResult;
 
-		public AuthenticationController(IAuthorizationServiceAuthApi authApi)
+		public AuthenticationController(
+			IAuthorizationServiceAuthApi authApi,
+			IServiceErrorsToActionResultTranslator errorsToResult)
         {
 			_authApi = authApi;
+			_errorsToResult = errorsToResult;
         }
 
 		[HttpPost("register")]
 		[DecorateUserResponse]
         public async Task<IActionResult> RegisterAsync(RegisterUserDto registerDto)
         {
-			ServiceResponse<UserAccountInfoDto> response;
-
-			try
-			{
-				response = await _authApi.RegisterAsync(registerDto);
-			}
-			catch
-			{
-				// TODO handle error
-				throw;
-			}
+			ServiceResponse<UserAccountInfoDto> response = await _authApi.RegisterAsync(registerDto);
 
 			if (!response.Ok)
-				// TODO handle exception when respnonse is not ok via SharedLogic
-				throw new Exception("Not Ok");
+			{
+				if (response.Errors == null)
+					throw new UnexpectedServiceResponseException("Response does not contain errors when it must");
 
+				return _errorsToResult.ErrorsToActionResult(response.Errors);
+			}
+
+			// TODO solve problem of repetitive code in both methods
 			if (response.Value == null)
-				// TODO add special type for microservice exception
-				throw new Exception("Ok but value is null");
+				throw new UnexpectedServiceResponseException("Response does not contain the user when it must");
 
 			return Ok(response.Value);
         }
@@ -55,25 +56,19 @@ namespace IntegorApiGatewayService.Controllers.AuthorizationService
 		[DecorateUserResponse]
 		public async Task<IActionResult> LoginAsync(LoginUserDto loginDto)
 		{
-			ServiceResponse<UserAccountInfoDto> response;
-
-			try
-			{
-				response = await _authApi.LoginAsync(loginDto);
-			}
-			catch
-			{
-				// TODO handle error
-				throw;
-			}
+			ServiceResponse<UserAccountInfoDto> response = await _authApi.LoginAsync(loginDto);
 
 			if (!response.Ok)
-				// TODO handle exception when respnonse is not ok via SharedLogic
-				throw new Exception("Not Ok");
+			{
+				if (response.Errors == null)
+					throw new UnexpectedServiceResponseException("Response does not contain errors when it must");
+
+				return _errorsToResult.ErrorsToActionResult(response.Errors);
+			}
+
 
 			if (response.Value == null)
-				// TODO add special type for microservice exception
-				throw new Exception("Ok but value is null");
+				throw new UnexpectedServiceResponseException("Response does not contain the user when it must");
 
 			return Ok(response.Value);
 		}

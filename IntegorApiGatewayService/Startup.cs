@@ -9,17 +9,14 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Builder;
 
-using IntegorSharedErrorHandlers;
-using IntegorSharedResponseDecorators.Authorization.Decorators;
-
 using IntegorAspHelpers.Middleware.WebApiResponse;
-
-using IntegorErrorsHandling;
+using IntegorAspHelpers.MicroservicesInteraction.Filters;
 
 using IntegorServicesInteraction.Authorization;
 using IntegorAuthorizationInteraction;
 
 using IntegorServiceConfiguration;
+using IntegorServiceConfiguration.Controllers;
 using IntegorServiceConfiguration.IntegorServicesInteraction;
 
 namespace IntegorApiGatewayService
@@ -43,22 +40,30 @@ namespace IntegorApiGatewayService
 
 			services.AddPrimaryTypesErrorConverters();
 
-			services.AddConfiguredControllers(exceptionConverters.ToArray());
+			services.AddSingleton<ApplicationServiceErrorsTranslationFilterAttribute>();
+
+			services.AddControllersWithProcessedMarking(options =>
+			{
+				options.Filters.AddErrorsDecoration();
+				options.Filters.AddErrorsHandling(exceptionConverters.ToArray());
+				options.Filters.AddServiceErrorsToActionResult();
+				options.Filters.AddSetProcessedByDefault();
+			})
+			.ConfigureApiBehaviorOptions(options =>
+			{
+				options.SetDefaultInvalidModelStateResponseFactory();
+			});
 
 			services.AddHttpContextServices();
 			services.AddResponseDecorators();
 
-			services.AddIntegorServices();
-
-			// TODO move to IntegorServiceConfiguration
-			services.AddSingleton<IHttpErrorsObjectParser<JsonElement>, StandardJsonHttpErrorsObjectParser>();
-			services.AddSingleton<IErrorParser<JsonError, JsonElement>, JsonErrorParser>();
+			services.AddIntegorServicesJsonErrorsParsing();
+			services.AddServicesErrorsToActionResultTranslation();
 
 			services.AddAuthenticationTokensSending();
-			services.AddUserReceiving();
 
-			// TODO move to IntegorServiceConfiguration AddUserSending
-			services.AddSingleton<UserResponseObjectDecorator>();
+			services.AddUserReceiving();
+			services.AddUserSending();
 		}
 
 		public void Configure(IApplicationBuilder app)
