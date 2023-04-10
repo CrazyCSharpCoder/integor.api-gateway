@@ -10,6 +10,7 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Builder;
 
 using IntegorAspHelpers.Middleware.WebApiResponse;
+using IntegorAspHelpers.MicroservicesInteraction;
 using IntegorAspHelpers.MicroservicesInteraction.Filters;
 
 using IntegorServicesInteraction.Authorization;
@@ -64,6 +65,8 @@ namespace IntegorApiGatewayService
 
 			services.AddUserReceiving();
 			services.AddUserSending();
+
+			services.AddSingleton<ServiceResponseToActionResultHelper>();
 		}
 
 		public void Configure(IApplicationBuilder app)
