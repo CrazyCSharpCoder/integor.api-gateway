@@ -11,6 +11,8 @@ using IntegorServicesInteraction;
 using IntegorServicesInteraction.Authorization;
 
 using IntegorAspHelpers.MicroservicesInteraction;
+using ExtensibleRefreshJwtAuthentication.Access;
+using ExtensibleRefreshJwtAuthentication.Refresh;
 
 namespace IntegorApiGatewayService.Controllers.AuthorizationService
 {
@@ -21,12 +23,21 @@ namespace IntegorApiGatewayService.Controllers.AuthorizationService
 		private IAuthorizationServiceAuthApi _authApi;
 		private ServiceResponseToActionResultHelper _responseToResult;
 
+		private IOnServiceProcessingAccessTokenAccessor _accessTokenAccessor;
+		private IOnServiceProcessingRefreshTokenAccessor _refreshTokenAccessor;
+
 		public AuthenticationController(
 			IAuthorizationServiceAuthApi authApi,
-			ServiceResponseToActionResultHelper responseToResult)
+			ServiceResponseToActionResultHelper responseToResult,
+
+			IOnServiceProcessingAccessTokenAccessor accessTokenAccessor,
+			IOnServiceProcessingRefreshTokenAccessor refreshTokenAccessor)
         {
 			_authApi = authApi;
 			_responseToResult = responseToResult;
+
+			_accessTokenAccessor = accessTokenAccessor;
+			_refreshTokenAccessor = refreshTokenAccessor;
         }
 
 		[HttpPost("register")]
@@ -34,6 +45,8 @@ namespace IntegorApiGatewayService.Controllers.AuthorizationService
         public async Task<IActionResult> RegisterAsync(RegisterUserDto registerDto)
         {
 			ServiceResponse<UserAccountInfoDto> response = await _authApi.RegisterAsync(registerDto);
+			AttachTokensToResponse(response.AuthenticationResult);
+
 			return _responseToResult.ToActionResult(response);
 		}
 
@@ -42,9 +55,20 @@ namespace IntegorApiGatewayService.Controllers.AuthorizationService
 		public async Task<IActionResult> LoginAsync(LoginUserDto loginDto)
 		{
 			ServiceResponse<UserAccountInfoDto> response = await _authApi.LoginAsync(loginDto);
+			AttachTokensToResponse(response.AuthenticationResult);
+
 			return _responseToResult.ToActionResult(response);
 		}
 
 		// TODO add logout
+
+		private void AttachTokensToResponse(UserAuthentication authentication)
+		{
+			if (authentication.AccessToken != null)
+				_accessTokenAccessor.AttachToResponse(authentication.AccessToken);
+
+			if (authentication.RefreshToken != null)
+				_refreshTokenAccessor.AttachToResponse(authentication.RefreshToken);
+		}
 	}
 }

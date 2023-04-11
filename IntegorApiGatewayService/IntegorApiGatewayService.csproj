@@ -11,12 +11,12 @@
   </ItemGroup>
 
   <ItemGroup>
-    <PackageReference Include="IntegorAuthorizationInteraction" Version="0.1.0.9" />
-    <PackageReference Include="IntegorServiceConfiguration" Version="1.0.0.12" />
+    <PackageReference Include="IntegorAuthorizationInteraction" Version="0.1.0.10" />
+    <PackageReference Include="IntegorServiceConfiguration" Version="1.0.0.14" />
   </ItemGroup>
 
   <ItemGroup>
-    <Folder Include="Controllers\" />
+    <Folder Include="FIlters\" />
   </ItemGroup>
 
 </Project>
