@@ -1,22 +1,10 @@
-﻿using System.Threading.Tasks;
-
-using Microsoft.AspNetCore.Mvc;
-
-using ExtensibleRefreshJwtAuthentication.Access;
-using ExtensibleRefreshJwtAuthentication.Refresh;
+﻿using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Authorization;
 
 using IntegorSharedResponseDecorators.Authorization.Attributes;
 
-using IntegorPublicDto.Authorization.Users;
-
-using IntegorServicesInteraction;
-using IntegorServicesInteraction.Authorization;
-
-using IntegorAspHelpers.MicroservicesInteraction;
-
-using IntegorLogicShared.IntegorServices.Shared.ResponseValidation;
-using Microsoft.AspNetCore.Authorization;
 using IntegorAspHelpers.MicroservicesInteraction.Authorization;
+using IntegorAspHelpers.MicroservicesInteraction.Authorization.Filters;
 
 namespace IntegorApiGatewayService.Controllers.AuthorizationService
 {
@@ -35,6 +23,7 @@ namespace IntegorApiGatewayService.Controllers.AuthorizationService
 		[HttpGet]
 		[Authorize]
 		[DecorateUserResponse]
+		[ValidateUserAuthenticationFilter]
 		public IActionResult GetMe()
 		{
 			return Ok(_userCaching.GetCachedUser());

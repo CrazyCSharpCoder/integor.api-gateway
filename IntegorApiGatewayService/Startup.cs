@@ -6,12 +6,9 @@ using System.Threading.Tasks;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Configuration;
 
-using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Builder;
 
 using IntegorAspHelpers.Middleware.WebApiResponse;
-using IntegorAspHelpers.MicroservicesInteraction;
-using IntegorAspHelpers.MicroservicesInteraction.Filters;
 using IntegorAspHelpers.MicroservicesInteraction.Authorization.AuthenticationHandlers.Access;
 
 using IntegorServicesInteraction.Authorization;
@@ -37,6 +34,7 @@ namespace IntegorApiGatewayService
 
         public void ConfigureServices(IServiceCollection services)
 		{
+			// Configuring API
 			services.AddSingleton(new AuthorizationServiceConfiguration()
 			{
 				// TODO start getting object from file
@@ -45,6 +43,12 @@ namespace IntegorApiGatewayService
 			services.AddScoped<IAuthorizationServiceAuthApi, AuthorizationServiceAuthApi>();
 			services.AddScoped<IAuthorizationServiceUsersApi, AuthorizationServiceUsersApi>();
 
+			services.AddIntegorServicesJsonErrorsParsing();
+
+			services.AddUserReceiving();
+			services.AddUserSending();
+
+			// Configuring errors handling
 			Type exceptionBaseConverter = services.AddExceptionConverting();
 
 			IEnumerable<Type> exceptionConverters = services
@@ -53,43 +57,43 @@ namespace IntegorApiGatewayService
 
 			services.AddPrimaryTypesErrorConverters();
 
-			services.AddSingleton<ApplicationServiceErrorsTranslationFilterAttribute>();
+			services.AddResponseErrorsObjectCompiler();
 
-			services.AddControllersWithProcessedMarking(options =>
+			// Configuring MVC
+			services.AddControllers(options =>
 			{
 				options.Filters.AddErrorsDecoration();
 				options.Filters.AddErrorsHandling(exceptionConverters.ToArray());
 				options.Filters.AddServiceErrorsToActionResult();
-				options.Filters.AddSetProcessedByDefault();
 			})
 			.ConfigureApiBehaviorOptions(options =>
 			{
 				options.SetDefaultInvalidModelStateResponseFactory();
 			});
 
-			services.AddHttpContextServices();
-			services.AddResponseDecorators();
+			// Configuring sending response helpers
+			services.AddServiceErrorsToActionResultTranslation();
+			services.AddStatusCodeResponseBodyFactory();
+			services.AddErrorResponseDecorator();
 
-			services.AddIntegorServicesJsonErrorsParsing();
-			services.AddServicesErrorsToActionResultTranslation();
+			// Configuring authentication
+			services.AddAuthorizationServices(_cookieTypesConfiguration);
+			services.AddAuthenticationTokensSending();
+			services.AddAuthenticationValidation();
+			services.AddAuthenticationTokensProcessing();
+
+			// Configuring HTTP and authentication strategies
+			services.AddHttpContextAccessor();
 
 			services.AddAuthentication(ValidateAccessAuthenticationDefaults.AuthenticationScheme)
 				.AddAccessAuthenticationViaMicroservice(ValidateAccessAuthenticationDefaults.AuthenticationScheme, null);
-
-			services.AddAuthorizationServices(_cookieTypesConfiguration);
-			services.AddAuthenticationTokensSending();
-
-			services.AddAuthenticationTokensProcessing();
-
-			services.AddUserReceiving();
-			services.AddUserSending();
-
-			services.AddSingleton<ServiceResponseToActionResultHelper>();
 		}
 
 		public void Configure(IApplicationBuilder app)
 		{
-			app.UseWebApiExceptionsHandling(WriteJsonBody);
+			app.UseWebApiExceptionsHandling();
+			app.UseWebApiStatusCodesHandling();
+
 			app.Use(async (context, next) =>
 			{
 				try
@@ -98,11 +102,10 @@ namespace IntegorApiGatewayService
 				}
 				catch (Exception exc)
 				{
-					await Console.Out.WriteLineAsync(exc.Message);
-					throw;
+                    await Console.Out.WriteLineAsync(exc.Message);
+                    throw;
 				}
 			});
-			app.UseWebApiStatusCodesHandling(WriteJsonBody);
 
 			app.UseRouting();
 
@@ -114,8 +117,5 @@ namespace IntegorApiGatewayService
 				endpoints.MapControllers();
 			});
 		}
-
-		private async Task WriteJsonBody(HttpResponse response, object body)
-			 => await response.WriteAsJsonAsync(body);
 	}
 }

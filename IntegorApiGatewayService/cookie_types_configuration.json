@@ -1,4 +1,5 @@
 {
+  "UserIdClaimType": "UserId",
   "UsernameClaimType": "Username",
   "UserRoleClaimType": "UserRole"
 }
