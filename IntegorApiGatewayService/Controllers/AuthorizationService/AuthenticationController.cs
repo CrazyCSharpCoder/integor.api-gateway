@@ -11,6 +11,7 @@ using IntegorServicesInteraction;
 using IntegorServicesInteraction.Authorization;
 
 using IntegorAspHelpers.MicroservicesInteraction;
+
 using ExtensibleRefreshJwtAuthentication.Access;
 using ExtensibleRefreshJwtAuthentication.Refresh;
 
@@ -42,7 +43,7 @@ namespace IntegorApiGatewayService.Controllers.AuthorizationService
 
 		[HttpPost("register")]
 		[DecorateUserResponse]
-        public async Task<IActionResult> RegisterAsync(RegisterUserDto registerDto)
+        public async Task<IActionResult> RegisterAsync([FromBody] RegisterUserDto registerDto)
         {
 			ServiceResponse<UserAccountInfoDto> response = await _authApi.RegisterAsync(registerDto);
 			AttachTokensToResponse(response.AuthenticationResult);
@@ -52,7 +53,7 @@ namespace IntegorApiGatewayService.Controllers.AuthorizationService
 
 		[HttpPost("login")]
 		[DecorateUserResponse]
-		public async Task<IActionResult> LoginAsync(LoginUserDto loginDto)
+		public async Task<IActionResult> LoginAsync([FromBody] LoginUserDto loginDto)
 		{
 			ServiceResponse<UserAccountInfoDto> response = await _authApi.LoginAsync(loginDto);
 			AttachTokensToResponse(response.AuthenticationResult);

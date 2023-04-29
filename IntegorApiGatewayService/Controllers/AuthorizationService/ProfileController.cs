@@ -23,7 +23,7 @@ namespace IntegorApiGatewayService.Controllers.AuthorizationService
 		[HttpGet]
 		[Authorize]
 		[DecorateUserResponse]
-		[ValidateUserAuthenticationFilter]
+		[ValidateUserAuthentication]
 		public IActionResult GetMe()
 		{
 			return Ok(_userCaching.GetCachedUser());

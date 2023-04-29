@@ -1,7 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Threading.Tasks;
 
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Configuration;
@@ -9,7 +8,6 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.AspNetCore.Builder;
 
 using IntegorAspHelpers.Middleware.WebApiResponse;
-using IntegorAspHelpers.MicroservicesInteraction.Authorization.AuthenticationHandlers.Access;
 
 using IntegorServicesInteraction.Authorization;
 using IntegorAuthorizationInteraction;
@@ -19,22 +17,30 @@ using IntegorServiceConfiguration.Authentication;
 using IntegorServiceConfiguration.Controllers;
 using IntegorServiceConfiguration.IntegorServicesInteraction;
 
+using IntegorAspHelpers.MicroservicesInteraction.Authorization.RemoteAuthentication;
+
 namespace IntegorApiGatewayService
 {
 	public class Startup
 	{
 		private IConfiguration _cookieTypesConfiguration;
+		private IConfiguration _authorizationServiceConfiguration;
 
         public Startup()
         {
 			_cookieTypesConfiguration = new ConfigurationBuilder()
 				.AddJsonFile("cookie_types_configuration.json")
 				.Build();
+
+			_authorizationServiceConfiguration = new ConfigurationBuilder()
+				.AddJsonFile("authorization_service_configuration.json")
+				.Build();
         }
 
         public void ConfigureServices(IServiceCollection services)
 		{
 			// Configuring API
+			// services.Configure<AuthorizationServiceConfiguration>(_authorizationServiceConfiguration);
 			services.AddSingleton(new AuthorizationServiceConfiguration()
 			{
 				// TODO start getting object from file
@@ -73,20 +79,21 @@ namespace IntegorApiGatewayService
 
 			// Configuring sending response helpers
 			services.AddServiceErrorsToActionResultTranslation();
-			services.AddStatusCodeResponseBodyFactory();
+			services.AddDefaultStatusCodeResponseBodyFactory();
 			services.AddErrorResponseDecorator();
 
 			// Configuring authentication
 			services.AddAuthorizationServices(_cookieTypesConfiguration);
-			services.AddAuthenticationTokensSending();
 			services.AddAuthenticationValidation();
-			services.AddAuthenticationTokensProcessing();
+			services.AddOnServiceProcessingTokenAuthentication();
+
+			services.AddAuthenticationTokensSending();
 
 			// Configuring HTTP and authentication strategies
 			services.AddHttpContextAccessor();
 
-			services.AddAuthentication(ValidateAccessAuthenticationDefaults.AuthenticationScheme)
-				.AddAccessAuthenticationViaMicroservice(ValidateAccessAuthenticationDefaults.AuthenticationScheme, null);
+			services.AddAuthentication(RemoteAccessRefreshAuthenticationDefaults.AuthenticationScheme)
+				.AddRemoteAccessRefreshAuthentication(RemoteAccessRefreshAuthenticationDefaults.AuthenticationScheme, null);
 		}
 
 		public void Configure(IApplicationBuilder app)
@@ -94,21 +101,8 @@ namespace IntegorApiGatewayService
 			app.UseWebApiExceptionsHandling();
 			app.UseWebApiStatusCodesHandling();
 
-			app.Use(async (context, next) =>
-			{
-				try
-				{
-					await next(context);
-				}
-				catch (Exception exc)
-				{
-                    await Console.Out.WriteLineAsync(exc.Message);
-                    throw;
-				}
-			});
-
 			app.UseRouting();
-
+			
 			app.UseAuthentication();
 			app.UseAuthorization();
 
