@@ -61,8 +61,6 @@ namespace IntegorApiGatewayService.Controllers.AuthorizationService
 			return _responseToResult.ToActionResult(response);
 		}
 
-		// TODO add logout
-
 		private void AttachTokensToResponse(UserAuthentication authentication)
 		{
 			if (authentication.AccessToken != null)
