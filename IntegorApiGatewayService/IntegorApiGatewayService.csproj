@@ -12,7 +12,7 @@
 
   <ItemGroup>
     <PackageReference Include="IntegorAuthorizationInteraction" Version="0.1.0.12" />
-    <PackageReference Include="IntegorServiceConfiguration" Version="1.0.0.19" />
+    <PackageReference Include="IntegorServiceConfiguration" Version="1.0.0.20" />
   </ItemGroup>
 
 </Project>
