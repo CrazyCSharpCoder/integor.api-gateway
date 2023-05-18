@@ -1,6 +1,9 @@
 ﻿using System.Threading.Tasks;
 
+using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
+
+using IntegorErrorsHandling;
 
 using IntegorSharedResponseDecorators.Authorization.Attributes;
 
@@ -11,6 +14,7 @@ using IntegorServicesInteraction;
 using IntegorServicesInteraction.Authorization;
 
 using IntegorAspHelpers.MicroservicesInteraction;
+using IntegorAspHelpers.MicroservicesInteraction.Authorization;
 
 using ExtensibleRefreshJwtAuthentication.Access;
 using ExtensibleRefreshJwtAuthentication.Refresh;
@@ -46,7 +50,7 @@ namespace IntegorApiGatewayService.Controllers.AuthorizationService
         public async Task<IActionResult> RegisterAsync([FromBody] RegisterUserDto registerDto)
         {
 			ServiceResponse<UserAccountInfoDto> response = await _authApi.RegisterAsync(registerDto);
-			AttachTokensToResponse(response.AuthenticationResult);
+			CreateAuthenticationSaver().ApplyAuthentication(response.AuthenticationResult);
 
 			return _responseToResult.ToActionResult(response);
 		}
@@ -56,18 +60,34 @@ namespace IntegorApiGatewayService.Controllers.AuthorizationService
 		public async Task<IActionResult> LoginAsync([FromBody] LoginUserDto loginDto)
 		{
 			ServiceResponse<UserAccountInfoDto> response = await _authApi.LoginAsync(loginDto);
-			AttachTokensToResponse(response.AuthenticationResult);
+			CreateAuthenticationSaver().ApplyAuthentication(response.AuthenticationResult);
 
 			return _responseToResult.ToActionResult(response);
 		}
 
-		private void AttachTokensToResponse(UserAuthentication authentication)
+		[HttpPost("logout")]
+		[DecorateUserResponse]
+		public async Task<IActionResult> LogoutAsync(
+			[FromServices] IResponseErrorsObjectCompiler errorsCompiler)
 		{
-			if (authentication.AccessToken != null)
-				_accessTokenAccessor.AttachToResponse(authentication.AccessToken);
+			string? accessToken = _accessTokenAccessor.GetFromRequest();
+			string? refreshToken = _refreshTokenAccessor.GetFromRequest();
 
-			if (authentication.RefreshToken != null)
-				_refreshTokenAccessor.AttachToResponse(authentication.RefreshToken);
+			ServiceResponse<UserAccountInfoDto> response =
+				await _authApi.LogoutAsync(accessToken, refreshToken);
+
+			CreateAuthenticationSaver().ApplyAuthentication(response.AuthenticationResult);
+
+			if (response.StatusCode == StatusCodes.Status401Unauthorized)
+				return new ObjectResult(errorsCompiler.CompileResponse(response.Errors!))
+				{
+					StatusCode = StatusCodes.Status401Unauthorized
+				};
+			
+			return _responseToResult.ToActionResult(response);
 		}
+
+		private UserAuthenticationResultSavingHelper CreateAuthenticationSaver()
+			=> new UserAuthenticationResultSavingHelper(_accessTokenAccessor, _refreshTokenAccessor);
 	}
 }

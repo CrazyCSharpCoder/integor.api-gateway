@@ -40,12 +40,7 @@ namespace IntegorApiGatewayService
         public void ConfigureServices(IServiceCollection services)
 		{
 			// Configuring API
-			// services.Configure<AuthorizationServiceConfiguration>(_authorizationServiceConfiguration);
-			services.AddSingleton(new AuthorizationServiceConfiguration()
-			{
-				// TODO start getting object from file
-				Url = "http://localhost:5179"
-			});
+			services.Configure<AuthorizationServiceConfiguration>(_authorizationServiceConfiguration);
 			services.AddScoped<IAuthorizationServiceAuthApi, AuthorizationServiceAuthApi>();
 			services.AddScoped<IAuthorizationServiceUsersApi, AuthorizationServiceUsersApi>();
 
