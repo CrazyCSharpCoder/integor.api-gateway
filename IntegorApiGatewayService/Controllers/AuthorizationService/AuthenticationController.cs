@@ -21,25 +21,27 @@ using ExtensibleRefreshJwtAuthentication.Refresh;
 
 namespace IntegorApiGatewayService.Controllers.AuthorizationService
 {
+	using Helpers;
+
     [ApiController]
 	[Route("auth")]
     public class AuthenticationController : ControllerBase
     {
 		private IAuthorizationServiceAuthApi _authApi;
-		private ServiceResponseToActionResultHelper _responseToResult;
+		private IntegorServicesResponseStatusCodesHelper _responseHelper;
 
 		private IOnServiceProcessingAccessTokenAccessor _accessTokenAccessor;
 		private IOnServiceProcessingRefreshTokenAccessor _refreshTokenAccessor;
 
 		public AuthenticationController(
 			IAuthorizationServiceAuthApi authApi,
-			ServiceResponseToActionResultHelper responseToResult,
+			IntegorServicesResponseStatusCodesHelper responseHelper,
 
 			IOnServiceProcessingAccessTokenAccessor accessTokenAccessor,
 			IOnServiceProcessingRefreshTokenAccessor refreshTokenAccessor)
         {
 			_authApi = authApi;
-			_responseToResult = responseToResult;
+			_responseHelper = responseHelper;
 
 			_accessTokenAccessor = accessTokenAccessor;
 			_refreshTokenAccessor = refreshTokenAccessor;
@@ -52,7 +54,7 @@ namespace IntegorApiGatewayService.Controllers.AuthorizationService
 			ServiceResponse<UserAccountInfoDto> response = await _authApi.RegisterAsync(registerDto);
 			CreateAuthenticationSaver().ApplyAuthentication(response.AuthenticationResult);
 
-			return _responseToResult.ToActionResult(response);
+			return _responseHelper.HandleStatusCodes(response, StatusCodes.Status400BadRequest);
 		}
 
 		[HttpPost("login")]
@@ -62,7 +64,7 @@ namespace IntegorApiGatewayService.Controllers.AuthorizationService
 			ServiceResponse<UserAccountInfoDto> response = await _authApi.LoginAsync(loginDto);
 			CreateAuthenticationSaver().ApplyAuthentication(response.AuthenticationResult);
 
-			return _responseToResult.ToActionResult(response);
+			return _responseHelper.HandleStatusCodes(response, StatusCodes.Status400BadRequest);
 		}
 
 		[HttpPost("logout")]
@@ -78,13 +80,7 @@ namespace IntegorApiGatewayService.Controllers.AuthorizationService
 
 			CreateAuthenticationSaver().ApplyAuthentication(response.AuthenticationResult);
 
-			if (response.StatusCode == StatusCodes.Status401Unauthorized)
-				return new ObjectResult(errorsCompiler.CompileResponse(response.Errors!))
-				{
-					StatusCode = StatusCodes.Status401Unauthorized
-				};
-			
-			return _responseToResult.ToActionResult(response);
+			return _responseHelper.HandleStatusCodes(response, StatusCodes.Status401Unauthorized);
 		}
 
 		private UserAuthenticationResultSavingHelper CreateAuthenticationSaver()

@@ -17,23 +17,39 @@ using IntegorServiceConfiguration.Authentication;
 using IntegorServiceConfiguration.Controllers;
 using IntegorServiceConfiguration.IntegorServicesInteraction;
 
+using ExternalServicesConfiguration;
+
 using IntegorAspHelpers.MicroservicesInteraction.Authorization.RemoteAuthentication;
+
+using IntegorApiGatewayShared.ObjectParsers;
 
 namespace IntegorApiGatewayService
 {
+	using Helpers;
+
 	public class Startup
 	{
 		private IConfiguration _cookieTypesConfiguration;
 		private IConfiguration _authorizationServiceConfiguration;
+		private IConfiguration _dataServiceConfiguration;
+		private IConfiguration _botListeningServiceConfiguration;
 
         public Startup()
         {
 			_cookieTypesConfiguration = new ConfigurationBuilder()
-				.AddJsonFile("cookie_types_configuration.json")
+				.AddJsonFile("cookieTypesConfiguration.json")
 				.Build();
 
 			_authorizationServiceConfiguration = new ConfigurationBuilder()
-				.AddJsonFile("authorization_service_configuration.json")
+				.AddJsonFile("ExternalServices/authorizationServiceConfiguration.json")
+				.Build();
+
+			_dataServiceConfiguration = new ConfigurationBuilder()
+				.AddJsonFile("ExternalServices/dataServiceConfiguration.json")
+				.Build();
+
+			_botListeningServiceConfiguration = new ConfigurationBuilder()
+				.AddJsonFile("ExternalServices/botListeningServiceConfiguration.json")
 				.Build();
         }
 
@@ -41,6 +57,9 @@ namespace IntegorApiGatewayService
 		{
 			// Configuring API
 			services.Configure<AuthorizationServiceConfiguration>(_authorizationServiceConfiguration);
+			services.Configure<DataServiceConfiguration>(_dataServiceConfiguration);
+			services.Configure<TelegramBotListeningServiceConfiguration>(_botListeningServiceConfiguration);
+
 			services.AddScoped<IAuthorizationServiceAuthApi, AuthorizationServiceAuthApi>();
 			services.AddScoped<IAuthorizationServiceUsersApi, AuthorizationServiceUsersApi>();
 
@@ -72,6 +91,9 @@ namespace IntegorApiGatewayService
 				options.SetDefaultInvalidModelStateResponseFactory();
 			});
 
+			// Configuring parsing
+			services.AddSingleton<DefaultObjectParser>();
+
 			// Configuring sending response helpers
 			services.AddServiceErrorsToActionResultTranslation();
 			services.AddDefaultStatusCodeResponseBodyFactory();
@@ -89,6 +111,22 @@ namespace IntegorApiGatewayService
 
 			services.AddAuthentication(RemoteAccessRefreshAuthenticationDefaults.AuthenticationScheme)
 				.AddRemoteAccessRefreshAuthentication(RemoteAccessRefreshAuthenticationDefaults.AuthenticationScheme, null);
+
+			// Add helpers
+			services.AddSingleton<IntegorServicesResponseStatusCodesHelper>();
+
+			// Configuring CORS
+			services.AddCors(options =>
+			{
+				options.AddDefaultPolicy(builder =>
+				{
+					builder
+						.WithOrigins("http://localhost:8080/", "http://localhost:8080")
+						.AllowAnyHeader()
+						.AllowAnyMethod()
+						.AllowCredentials();
+				});
+			});
 		}
 
 		public void Configure(IApplicationBuilder app)
@@ -97,7 +135,8 @@ namespace IntegorApiGatewayService
 			app.UseWebApiStatusCodesHandling();
 
 			app.UseRouting();
-			
+			app.UseCors();
+
 			app.UseAuthentication();
 			app.UseAuthorization();
 
