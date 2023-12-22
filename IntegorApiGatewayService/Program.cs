@@ -12,7 +12,7 @@ namespace IntegorApiGatewayService
 				{
 					webBuilder.UseStartup<Startup>();
 				});
-
+			
 			IHost host = builder.Build();
 			host.Run();
 		}
